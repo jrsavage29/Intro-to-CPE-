@@ -1,0 +1,415 @@
+//  Starter source code program for ECE 2504
+//  Project 4
+//   
+////////////////////////////////////////////////////////////////////////////////////////////////////
+// File: starter-program FINAL VER.txt
+//
+// Description: This text file implements the small assembly langauge program to process
+// the values stored in an array in the data memory. The program uses two for loops to find the maximum
+// and the minimum value in n length array
+// 
+// The code will be used to display:
+// 1. The location of the first array element (pointer to the array) (Data Memory Location: 00 )
+// 2. The length of the array (Data Memory Location: 01 )
+// 3. The Maximum value in the array (Data Memory Location: 02 )
+// 4. The Minimum value in the array (Data Memory Location: 03 )
+// 5. The Last four digits of my Student ID (Data Memory Location: 04 )
+//
+// The registers used in this program are used as follows:
+// r0 - Mainly as the zero register. At times was used for controlling when the program needed to skip over parts of code.( Act like an if-else)
+// r1 -  x (the for loop counter)
+// r2 - y (the array pointer)
+// r3 - the data memory pointer. Was also used to hold the result of some of the comparisons (brz statements)
+// r4 - used to hold the current max or min
+// r5 - used as the bit mask. Was also used to hold the result of whether the bits during a comparison were the same (brz statements)
+// r6 - used to hold the next value in the array element
+// r7 - was free to use for many purpose (No specific role)
+//
+//
+// Created: 11/28/2018, Jamahl Savage, Virginia Tech
+// Student ID Last Four Digits: 3855 
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+ldi r0, 4
+shl r0, r0
+shl r0, r0
+jmp r0   
+
+// The following set of load instructions read the final values of the variables in
+// memory locations into r1-r5 so that we can see them on the LEDs.
+// Your code must jump to this point after it has stored the results in data memory. 
+// You should jump to location 4.
+// address 0x04
+
+xor r0, r0, r0
+ld r1, r0  		//r1<-M[0x00]
+inc r0, r0
+ld r2, r0  		//r2<-M[0x01]
+inc r0, r0
+ld r3, r0  		//r3<-M[0x02]
+inc r0, r0
+ld r4, r0  		//r4<-M[0x03]
+inc r0, r0
+ld r5, r0  		//r5<-M[0x04]
+				// Now loop forever
+ldi r0, 0
+				//The address of this brz is the one used in validation: Address 0x0F. 
+brz r0, 0  
+
+				// Your last instruction should be a jump to location 4
+				// in order to read the variables into registers r1-r5.
+				// address 0x10
+//creating the last 4 digits of the student ID (3855) and storing them while using register 5 as a pointer to memory location 4
+
+ldi r6, 3									
+shl r6, r6									
+shl r6, r6									
+shl r6, r6									
+shl r6, r6									
+adi r6, r6, 7
+adi r6, r6,	1		//this will now make it 8					
+shl r6, r6
+shl r6, r6
+shl r6, r6
+shl r6, r6
+adi r6, r6, 5
+shl r6, r6
+shl r6, r6
+shl r6, r6
+shl r6, r6
+adi r6, r6, 5
+ldi r3, 4 			//r3 points to the memory address 4, which the student id should be stored in
+st r3, r6
+
+
+//Create a zero register: r0
+
+ldi r0, 0
+
+//derive a for loop counter (x): r1
+// derive a general DM pointer: r3
+
+ldi r3, 1
+ld r1, r3 			//r1 = x
+dec r1, r1 			//This allows us to start with the comparison of the current max and the next value without over iterating
+
+//derive an array poiner(y): r2
+
+ldi r3, 0
+ld r2, r3 			//r2  = y
+
+
+//derive a max and min: r4 
+
+ld r4, r2 			//register 4(the max holder) is initialized to be the first value in the array
+
+//START OF THE FOR LOOP
+
+inc r2, r2 			// i = 1
+ld r6, r2 			//r6 = a[i] the next value in the array 
+
+//CREATE THE MASK USED FOR ONLY COMPARING THE SIGN OF THE FPs//////////////////////////
+
+ldi r5, 7
+adi r5,r5, 1 		//Now is the value 8
+shl r5, r5
+shl r5, r5
+shl r5, r5
+shl r5, r5
+adi r5, r5, 0
+shl r5, r5
+shl r5, r5
+shl r5, r5
+shl r5, r5
+adi r5, r5, 0
+shl r5, r5
+shl r5, r5
+shl r5, r5
+shl r5, r5
+adi r5, r5, 0 		//the mask is now equal to 8000 in hex which is  16'b1000 0000 0000 0000
+and r7, r4, r5 		//Using a selective hold or mask to only maintain the sign bit of the current max. It will be held in r7 for later comparison				
+shr r7, r7      	//We will have to shift the bit to the right one so that it is at location 15 of the 16 bit number (therefore there will only be positive values for comparing)				
+					//r5 will no longer be need for bit masking at this point so we can use for holding the result of the bit masking of the next value in the array
+and r5, r6, r5 		//Using a selective hold or mask to only maintain the sign bit of the next value in the array. It will be held in r5 for later comparison
+				
+shr r5, r5			//We will also have to shift the bit to the right so that it is at location 15 of the 16 bit number (therefore there will only be positive values for comparing)
+					//Next we will check to make sure the max and the next value in the array DON'T have the same sign and the result of the comparison will be stored in r3
+xor r3, r5, r7
+					//Now we use brz to determine whether the max and the next value in the array have the same sign
+brz r3, 8 			//IF they have the same sign as each other (r3 = 0) then we must continue checking the rest of the bits
+					//ELSE we will check whether the max or the next value in the array is greater through means of subtraction
+sub r3, r7, r5 
+brn r3, 3			// If this fails then that means the current max had a 1 as it's sign, thus meaning it was negative. Therefore not the max.
+add r4, r0, r6		// This means that brn failed and that the next value in the array was the one with a 0 as its sign, thus meaning it was positive.
+brz r0, 2 			// TO THE END OF ALL THE IF ELSE STATEMENTS SO THAT SKIPS TO THE INCREMENTING AND DECREMENTING
+add r4, r0, r4		// If brn passes that means that the current max had a 0 as its sign, thus meaning it was positive. There the current max remains the max
+brz r0, 30 			// TO THE END OF ALL THE IF ELSE STATEMENTS SO THAT SKIPS TO THE INCREMENTING AND DECREMENTING
+brz r0,	-30			// TO THE BEGINNING OF ALL THE IF ELSE STATEMENTS SO THAT IT CONTINUES THE LOOP
+
+//THIS WILL MARK THE END OF CHECKING THE SIGNS OF THE MAX AND THE NEXT VALUE IN THE ARRAY. WE WILL NOW PROCEED ///////////
+//TO CHECKING THE 4 BITS OF THE EXPONENT OF THE CURRENT MAX AND THE NEXT VALUE IN THE ARRAY IF NECESSARY /////////////////
+
+ldi r0, 1
+ldi r5, 7
+shl r5, r5
+shl r5, r5
+shl r5, r5
+shl r5, r5
+adi r5, r5, 7
+adi r5, r5, 1 		//Now the value is 8
+shl r5, r5
+shl r5, r5
+shl r5, r5
+shl r5, r5
+adi r5, r5, 0
+shl r5, r5
+shl r5, r5
+shl r5, r5
+shl r5, r5
+adi r5, r5, 0 		//the mask is now equal to 7800 in hex which is  16'b0111 1000 0000 0000
+and r7, r4, r5 		//Using a selective hold or mask to only maintain the exponent bits of the current max. It will be held in r7 for later comparison
+					//r5 will no longer be need for bit masking at this point so we can use for maintaining the result of the bit masking of the next value in the array
+and r5, r6, r5 		//Using a selective hold or mask to only maintain the exponent bits of the next value in the array. It will be held in r5 for later comparison
+					//Next we will check to make sure the max and the next value in the array DON'T have the same exponent bits and the result of the comparison will be stored in r3
+xor r3, r5, r7
+					//Now we use brz to determine whether the max and the next value in the array have the same exponent bits
+brz r3, 9 			//IF they have the same exponent bits as each other (r3 = 0) then we must continue checking the rest of the bits
+					//ELSE we will check whether the max or the next value in the array is greater through means of subtraction
+ldi r0, 0
+sub r3, r7, r5 
+brn r3, 3 			//If this fails then that means the current max has a larger exponent thus it stays as the max
+add r4, r0, r4 		//The max shall stay the new max
+brz r0, 2 			// TO THE END OF ALL THE IF ELSE STATEMENTS SO THAT SKIPS TO THE INCREMENTING AND DECREMENTING
+add r4, r0, r6 		//If brn passed then that means the next value in the array had a larger exponent and thus should become the max
+brz r0, 3 			// TO THE END OF ALL THE IF ELSE STATEMENTS SO THAT SKIPS TO THE INCREMENTING AND DECREMENTING
+brz r0,	-30			// TO THE BEGINNING OF ALL THE IF ELSE STATEMENTS SO THAT IT CONTINUES THE LOOP
+
+//THIS WILL MARK THE END OF CHECKING THE 4 BITS OF THE EXPONENT OF THE MAX AND THE NEXT VALUE IN THE ARRAY. //////////////
+//WE WILL NOW PROCEED TO CHECKING THE 11 BITS OF THE MANTISSA OF THE /////////////////////////////////////////////////////
+//CURRENT MAX AND THE NEXT VALUE IN THE ARRAY IF NECESSARY////////////////////////////////////////////////////////////////
+
+ldi r0, 1
+brz r0, 30 			// TO THE END OF ALL THE IF ELSE STATEMENTS SO THAT SKIPS TO THE INCREMENTING AND DECREMENTING
+brz r0, -3			// TO THE BEGINNING OF ALL THE IF ELSE STATEMENTS SO THAT IT CONTINUES THE LOOP
+ldi r5, 0
+shl r5, r5
+shl r5, r5
+shl r5, r5
+shl r5, r5
+adi r5, r5, 7
+shl r5, r5
+shl r5, r5
+shl r5, r5
+shl r5, r5
+adi r5, r5, 7
+adi r5, r5, 7
+adi r5, r5, 1 		//Now the value is 15
+shl r5, r5
+shl r5, r5
+shl r5, r5
+shl r5, r5
+adi r5, r5, 7 	
+adi r5, r5, 7
+adi r5,	r5, 1 		//Now the value 15
+					//the mask is now equal to 07FF in hex which is  16'b0000 0111 1111 1111
+and r7, r4, r5 		//Using a selective hold or mask to only maintain the mantissa bits of the current max. It will be held in r7 for later comparison
+					//r5 will no longer be need for bit masking at this point so we can use for maintaining the result of the bit masking of the next value in the array
+and r5, r6, r5 		//Using a selective hold or mask to only maintain the mantissa bits of the next value in the array. It will be held in r5 for later comparison
+					//Next we will check to make sure the max and the next value in the array DON'T have the same mantissa bits and the result of the comparison will be stored in r3
+xor r3, r5, r7
+					//Now we use brz to determine whether the max and the next value in the array have the same mantissa bits
+brz r3, 9 			//IF they have the same mantissa bits as each other (r3 = 0) then the current max and the next value in the array must be the same, Thus we can just maintain the same max
+					//ELSE we will check whether the max or the next value in the array is greater through means of subtraction
+ldi r0, 0
+sub r3, r7, r5 
+brn r3, 3 			//If this fails then that means the current max has a larger mantissa thus it remains the max
+add r4, r0, r4 		//The current max shall remain as the max
+brz r0, 4 			// TO THE END OF ALL THE IF ELSE STATEMENTS SO THAT SKIPS TO THE INCREMENTING AND DECREMENTING
+add r4, r0, r6 		//If brn passed then that means the next value in the array had a larger mantissa and thus should be made the new max
+brz r0, 2			// TO THE END OF ALL THE IF ELSE STATEMENTS SO THAT SKIPS TO THE INCREMENTING AND DECREMENTING
+brz r0,	-32			// TO THE BEGINNING OF ALL THE IF ELSE STATEMENTS SO THAT IT CONTINUES THE LOOP
+
+//THIS WILL MARK THE END OF COMPARISON ALGORITHM. /////////////////////////////////////////////////////////////////////
+
+					//Decrement the counter to indicate that I have completed an iteration also increment second counter (register 6) for going through the values in the array
+inc r2, r2 			//ptr++ (array pointer++)
+dec r1, r1 			//loop counter--
+
+					//END OF THE LOOP!!!!!!!!!!!!!!!!!!!!!!!!!!!
+					//Check the value of the counter register to see if it's done with the for loop. If it's done go 2 spots forward in the instructions and continue, 
+					//else move forward once in the instructions (brz r0 will cause it to repeat the loop)
+brz r1, 2
+brz r0, -4 			//DON'T FORGET TO SET THE OFFSET SO THAT IT REPEATS THE COMPARISON ALGORITHM IF THE LOOP IS NOT DONE!!!!!!
+
+					//The following will occur after the for loop has ended
+					//Now we store the max (register 4) into its appropriate location in data memory
+ldi r3, 2 
+st r3, r4
+
+//NOW TO CHECK FOR THE MIN ////////////////////////////////////////////////////////////////////////////////
+
+//derive a for loop counter (x): r1
+// derive a general DM pointer: r3
+
+ldi r3, 1
+ld r1, r3 			//r1 = x
+dec r1, r1 			//This allows us to start with the comparison of the current min and the next value without over iterating
+
+//derive an array poiner(y): r2
+
+ldi r3, 0
+ld r2, r3 			//r2  = y
+
+//derive a max and min: r4
+ 
+ld r4, r2 			//register 4(the max holder) is initialized to be the first value in the array
+
+//START OF THE FOR LOOP
+
+inc r2, r2 			// i = 1
+ld r6, r2 			//r6 = a[i] the next value in the array 
+
+
+
+//CREATE THE MASK USED FOR ONLY COMPARING THE SIGN OF THE FPs//////////////////////////
+
+ldi r5, 7
+adi r5,r5, 1 		//Now is the value 8
+shl r5, r5
+shl r5, r5
+shl r5, r5
+shl r5, r5
+adi r5, r5, 0
+shl r5, r5
+shl r5, r5
+shl r5, r5
+shl r5, r5
+adi r5, r5, 0
+shl r5, r5
+shl r5, r5
+shl r5, r5
+shl r5, r5
+adi r5, r5, 0 		//the mask is now equal to 8000 in hex which is  16'b1000 0000 0000 0000
+and r7, r4, r5 		//Using a selective hold or mask to only maintain the sign bit of the current min. It will be held in r7 for later comparison
+shr r7, r7      	//We will have to shift the bit to the right one so that it is at location 15 of the 16 bit number (therefore there will only be positive values for comparing)		
+					//r5 will no longer be need for bit masking at this point so we can use for holding the result of the bit masking of the next value in the array
+and r5, r6, r5 		//Using a selective hold or mask to only maintain the sign bit of the next value in the array. It will be held in r5 for later comparison
+shr r5, r5			//We will have to shift the bit to the right one so that it is at location 15 of the 16 bit number (therefore there will only be positive values for comparing)
+					//Next we will check to make sure the min and the next value in the array DON'T have the same sign and the result of the comparison will be stored in r3
+xor r3, r5, r7
+					//Now we use brz to determine whether the min and the next value in the array have the same sign
+brz r3, 8 			//IF they have the same sign as each other (r3 = 0) then we must continue checking the rest of the bits
+					//ELSE we will check whether the min or the next value in the array is lesser through means of subtraction
+sub r3, r7, r5 
+brn r3, 3			// If this fails then that means the current min had a 1 as it's sign, thus meaning it was negative. Therefore it is the min.
+add r4, r0, r4		// This means that brn failed and that the next value in the array was the one with a 0 as its sign, thus meaning it was positive.
+brz r0, 2 			// TO THE END OF ALL THE IF ELSE STATEMENTS SO THAT SKIPS TO THE INCREMENTING AND DECREMENTING
+add r4, r0, r6		// If brn passes that means that the current min had a 0 as its sign, thus meaning it was positive. Therefore the next value in the array is the new min
+brz r0, 30 			// TO THE END OF ALL THE IF ELSE STATEMENTS SO THAT SKIPS TO THE INCREMENTING AND DECREMENTING
+brz r0,	-30			// TO THE BEGINNING OF ALL THE IF ELSE STATEMENTS SO THAT IT CONTINUES THE LOOP
+
+//THIS WILL MARK THE END OF CHECKING THE SIGNS OF THE MIN AND THE NEXT VALUE IN THE ARRAY. WE WILL NOW PROCEED ///////////
+//TO CHECKING THE 4 BITS OF THE EXPONENT OF THE CURRENT MIN AND THE NEXT VALUE IN THE ARRAY IF NECESSARY /////////////////
+
+ldi r0, 1
+ldi r5, 7
+shl r5, r5
+shl r5, r5
+shl r5, r5
+shl r5, r5
+adi r5, r5, 7
+adi r5, r5, 1 		//Now the value is 8
+shl r5, r5
+shl r5, r5
+shl r5, r5
+shl r5, r5
+adi r5, r5, 0
+shl r5, r5
+shl r5, r5
+shl r5, r5
+shl r5, r5
+adi r5, r5, 0 		//the mask is now equal to 7800 in hex which is  16'b0111 1000 0000 0000
+and r7, r4, r5 		//Using a selective hold or mask to only maintain the exponent bits of the current min. It will be held in r7 for later comparison
+					//r5 will no longer be need for bit masking at this point so we can use for maintaining the result of the bit masking of the next value in the array
+and r5, r6, r5 		//Using a selective hold or mask to only maintain the exponent bits of the next value in the array. It will be held in r5 for later comparison
+					//Next we will check to make sure the min and the next value in the array DON'T have the same exponent bits and the result of the comparison will be stored in r3
+xor r3, r5, r7
+					//Now we use brz to determine whether the min and the next value in the array have the same exponent bits
+brz r3, 9 			//IF they have the same exponent bits as each other (r3 = 0) then we must continue checking the rest of the bits
+					//ELSE we will check whether the min or the next value in the array is lesser through means of subtraction
+ldi r0, 0
+sub r3, r7, r5 
+brn r3, 3 			//If this fails then that means the current min has a smaller exponent thus it is the min
+add r4, r0, r4 		//The current min shall remain the min
+brz r0, 2 			// TO THE END OF ALL THE IF ELSE STATEMENTS SO THAT SKIPS TO THE INCREMENTING AND DECREMENTING
+add r4, r0, r6 		//If brn passed then that means the next value in the array had a smaller exponent and thus it should be the new min
+brz r0, 3 			// TO THE END OF ALL THE IF ELSE STATEMENTS SO THAT SKIPS TO THE INCREMENTING AND DECREMENTING
+brz r0,	-30			// TO THE BEGINNING OF ALL THE IF ELSE STATEMENTS SO THAT IT CONTINUES THE LOOP
+
+//THIS WILL MARK THE END OF CHECKING THE 4 BITS OF THE EXPONENT OF THE MIN AND THE NEXT VALUE IN THE ARRAY. //////////////
+//WE WILL NOW PROCEED TO CHECKING THE 11 BITS OF THE MANTISSA OF THE /////////////////////////////////////////////////////
+//CURRENT MIN AND THE NEXT VALUE IN THE ARRAY IF NECESSARY////////////////////////////////////////////////////////////////
+
+ldi r0, 1
+brz r0, 30			// TO THE END OF ALL THE IF ELSE STATEMENTS SO THAT SKIPS TO THE INCREMENTING AND DECREMENTING
+brz r0, -3			// TO THE BEGINNING OF ALL THE IF ELSE STATEMENTS SO THAT IT CONTINUES THE LOOP
+ldi r5, 0
+shl r5, r5
+shl r5, r5
+shl r5, r5
+shl r5, r5
+adi r5, r5, 7
+shl r5, r5
+shl r5, r5
+shl r5, r5
+shl r5, r5
+adi r5, r5, 7
+adi r5, r5, 7
+adi r5, r5, 1 		//Now the value is 15
+shl r5, r5
+shl r5, r5
+shl r5, r5
+shl r5, r5
+adi r5, r5, 7 	
+adi r5, r5, 7
+adi r5,	r5, 1 		//Now the value is 15
+					//the mask is now equal to 07FF in hex which is  16'b0000 0111 1111 1111
+and r7, r4, r5 		//Using a selective hold or mask to only maintain the mantissa bits of the current min. It will be held in r7 for later comparison
+					//r5 will no longer be need for bit masking at this point so we can use for maintaining the result of the bit masking of the next value in the array
+and r5, r6, r5 		//Using a selective hold or mask to only maintain the mantissa bits of the next value in the array. It will be held in r5 for later comparison
+					//Next we will check to make sure the min and the next value in the array DON'T have the same mantissa bits and the result of the comparison will be stored in r3
+xor r3, r5, r7
+					//Now we use brz to determine whether the min and the next value in the array have the same mantissa bits
+brz r3, 9 			//IF they have the same mantissa bits as each other (r3 = 0) then the current min and the next value in the array must be the same, Thus we can just maintain the same min
+					//ELSE we will check whether the min or the next value in the array is lesser through means of subtraction
+ldi r0, 0
+sub r3, r7, r5 
+brn r3, 3 			//If this fails then that means the current min has a larger mantissa thus it should NOT stay the min
+add r4, r0, r6 		//The current min is replaced by the next value in the array as the new min
+brz r0, 4 			// TO THE END OF ALL THE IF ELSE STATEMENTS SO THAT SKIPS TO THE INCREMENTING AND DECREMENTING
+add r4, r0, r4 		//If brn passed then that means the next value in the array had a larger mantissa and thus the current min REMAINS as the min
+brz r0, 2			// TO THE END OF ALL THE IF ELSE STATEMENTS SO THAT SKIPS TO THE INCREMENTING AND DECREMENTING
+brz r0,	-32			// TO THE BEGINNING OF ALL THE IF ELSE STATEMENTS SO THAT IT CONTINUES THE LOOP
+
+
+//THIS WILL MARK THE END OF COMPARISON ALGORITHM. /////////////////////////////////////////////////////////////
+
+					//Decrement the counter to indicate that I have completed an iteration also increment second counter (register 6) for going through the values in the array
+inc r2, r2 			//ptr++ (array pointer++)
+dec r1, r1 			//loop counter--
+					//END OF THE LOOP!!!!!!!!!!!!!!!!!!!!!!!!!!!
+					//Check the value of the counter register to see if it's done with the for loop. If it's done go 2 spots forward in the instructions and continue, else move forward once in the instructions (brz r0 will cause it  
+					// to repeat the loop)
+brz r1, 2
+brz r0, -4 			//DON'T FORGET TO SET THE OFFSET SO THAT IT REPEATS THE COMPARISON ALGORITHM IF THE LOOP IS NOT DONE!!!!!!
+					//The following will occur after the for loop has ended
+					//Now we store the max (register 4) into its appropriate location in data memory
+ldi r3, 3
+st r3, r4
+ldi r0, 4 			//Give the register 0 the location in the instructions (Stating from 0 aka the top of the instructions)  
+jmp r0 				// to jump back to where the final data will be stored in the specified registers for viewing on the DE0 Nano Board
+
+
+
+
+
