@@ -1,0 +1,5 @@
+module FU_jamahl29(R, C, V, N, Z, A, B, Op);
+	input [7:0] A, B;
+	input [3:0] Op;
+	output [7:0] R;
+	output C, V, N, Z;
